@@ -1,0 +1,411 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="TCPServer" Id="{e7ca4252-f97d-44e0-bcf2-5e3d5d0e1ef7}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM TCPServer
+VAR	
+	bSuccess					: BOOL;//函数 F_CreateServerHnd 用于初始化句柄 hServer 内部参数并创建服务器，bSuccess确认是否建立成功
+	bEnable						: BOOL;//是否启用
+	Step						: INT;
+	iCount						: INT;
+
+	//控制器做 TCPIP 的 Server
+	sRemoteHost 				: STRING(15) := '169.254.130.170';//控制器IP地址
+	nRemotePort 				: UDINT := 2000;//控制器端口号
+	fb_ServerConnection			: FB_ServerClientConnection;//建立server 和client连接
+	hServer						: T_HSERVER;//TCPIP被创建的服务器
+	hSocket						: T_HSOCKET;//TCPIP句柄
+
+	//数据接收
+	fb_Receive					: FB_SocketReceive;
+//	Data_receive	   AT%Q*	: ARRAY[1..10]OF BYTE;
+//	bReceive		   AT%I*	: BOOL;//接收执行
+	
+	//数据发送
+	fb_Send						: FB_SocketSend;
+//	nSendDataBuffer	   AT%I*	: ARRAY[1..50]OF BYTE;
+//	bsend			   AT%I*	: BOOL;//发送执行
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FBD();
+CASE step OF
+0:
+	bSuccess:=FALSE;
+    bEnable:=FALSE;
+         step:=step+1;
+1:
+	bSuccess:=F_CreateServerHnd(
+	sSrvNetID:='' ,
+	sLocalHost:=sRemoteHost ,
+	nLocalPort:=nRemotePort ,
+	nMode:=LISTEN_MODE_CLOSEALL OR CONNECT_MODE_ENABLEDBG ,
+	bEnable:=TRUE ,
+	hServer:=hserver );
+         step:=step+1;
+
+2:
+        IF bSuccess THEN
+ 	       bEnable:=TRUE;
+	        IF  NOT fb_ServerConnection.bError THEN
+		          step:=step+1;
+	         ELSE
+ 		        step:=0;
+   	      	END_IF
+      	ELSE
+	         step:=0;
+      	END_IF
+
+3:
+		IF fb_ServerConnection.eState=eSOCKET_CONNECTED THEN
+				iCount:=iCount+1;
+ 				step:=step+1;
+		END_IF
+
+4:
+
+    fb_Receive(
+	sSrvNetId:='' ,
+	hSocket:=hSocket ,
+	cbLen:=SIZEOF(GVL.Data_receive) ,
+	pDest:=ADR(GVL.Data_receive) ,
+	bExecute:=GVL.bReceive ,
+	tTimeout:=T#1S ,
+	bBusy=> ,
+	bError=> ,
+	nErrId=> ,
+	nRecBytes=> );
+IF   NOT fb_Receive.bbusy OR NOT fb_Receive.berror THEN
+	fb_Send(
+	sSrvNetId:='' ,
+	hSocket:=hSocket ,
+	cbLen:=SIZEOF(GVL.nSendDataBuffer) ,
+	pSrc:=ADR(GVL.nSendDataBuffer) ,
+	bExecute:=GVL.bsend ,
+	tTimeout:=t#6s ,
+	bBusy=> ,
+	bError=> ,
+	nErrId=> );
+END_IF
+//		ELSE
+//   		 step:=0;
+GVL.rec_busy:=fb_Receive.bBusy;
+IF fb_Receive.nRecBytes>0 THEN
+			GVL.number_recdata:=fb_Receive.nRecBytes;//返回接收到的数据个数
+END_IF	
+IF GVL.bReceive=TRUE THEN
+			GVL.bReceive:=FALSE;//只接收一次数据
+END_IF
+IF GVL.bsend=TRUE THEN
+			GVL.bsend:=FALSE;//只发送一次数据
+END_IF
+END_CASE]]></ST>
+    </Implementation>
+    <Action Name="FBD" Id="{815295f9-a16f-4cfb-afcc-ba3c47d9c10e}">
+      <Implementation>
+        <NWL>
+          <XmlArchive>
+            <Data>
+              <o xml:space="preserve" t="NWLImplementationObject">
+                <v n="NetworkListComment">""</v>
+                <v n="DefaultViewMode">"Fbd"</v>
+                <l2 n="NetworkList" cet="Network">
+                  <o>
+                    <v n="ILActive">false</v>
+                    <v n="FBDValid">false</v>
+                    <v n="ILValid">false</v>
+                    <l2 n="ILLines" />
+                    <v n="Comment">""</v>
+                    <v n="Title">""</v>
+                    <v n="Label">""</v>
+                    <v n="OutCommented">false</v>
+                    <l2 n="NetworkItems" cet="BoxTreeBox">
+                      <o>
+                        <v n="BoxType">"FB_ServerClientConnection"</v>
+                        <o n="Instance" t="Operand">
+                          <v n="Operand">"fb_ServerConnection"</v>
+                          <v n="Type">"FB_ServerClientConnection"</v>
+                          <v n="Comment">""</v>
+                          <v n="SymbolComment">""</v>
+                          <v n="Address">""</v>
+                          <o n="Flags" t="Flags">
+                            <v n="Flags">0</v>
+                            <v n="Fixed">false</v>
+                            <v n="Extensible">false</v>
+                          </o>
+                          <v n="LValue">false</v>
+                          <v n="Boolean">false</v>
+                          <v n="IsInstance">true</v>
+                          <v n="Id">36L</v>
+                        </o>
+                        <o n="OutputItems" t="OutputItemList">
+                          <l2 n="OutputItems" cet="Operand">
+                            <n />
+                            <o>
+                              <v n="Operand">""</v>
+                              <n n="Type" />
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">true</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">38L</v>
+                            </o>
+                            <o>
+                              <v n="Operand">""</v>
+                              <n n="Type" />
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">true</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">39L</v>
+                            </o>
+                            <o>
+                              <v n="Operand">"hSocket"</v>
+                              <v n="Type">"T_HSOCKET"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">true</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">40L</v>
+                            </o>
+                            <o>
+                              <v n="Operand">""</v>
+                              <n n="Type" />
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">true</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">41L</v>
+                            </o>
+                          </l2>
+                        </o>
+                        <o n="Flags" t="Flags">
+                          <v n="Flags">0</v>
+                          <v n="Fixed">true</v>
+                          <v n="Extensible">false</v>
+                        </o>
+                        <n n="InputFlags" />
+                        <l2 n="InputItems" cet="BoxTreeOperand">
+                          <o>
+                            <o n="Operand" t="Operand">
+                              <v n="Operand">"hServer"</v>
+                              <v n="Type">"T_HSERVER"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">false</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">43L</v>
+                            </o>
+                            <v n="Id">42L</v>
+                          </o>
+                          <o>
+                            <o n="Operand" t="Operand">
+                              <v n="Operand">"eACCEPT_ALL"</v>
+                              <v n="Type">"E_SOCKETACCEPTMODE"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">false</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">45L</v>
+                            </o>
+                            <v n="Id">44L</v>
+                          </o>
+                          <o>
+                            <o n="Operand" t="Operand">
+                              <v n="Operand">"sRemoteHost"</v>
+                              <v n="Type">"STRING(15)"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">false</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">47L</v>
+                            </o>
+                            <v n="Id">46L</v>
+                          </o>
+                          <o>
+                            <o n="Operand" t="Operand">
+                              <v n="Operand">"nRemotePort"</v>
+                              <v n="Type">"UDINT"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">false</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">49L</v>
+                            </o>
+                            <v n="Id">48L</v>
+                          </o>
+                          <o>
+                            <o n="Operand" t="Operand">
+                              <v n="Operand">"bEnable"</v>
+                              <v n="Type">"BOOL"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">false</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">51L</v>
+                            </o>
+                            <v n="Id">50L</v>
+                          </o>
+                          <o>
+                            <o n="Operand" t="Operand">
+                              <v n="Operand">"t#1s"</v>
+                              <v n="Type">"TIME"</v>
+                              <v n="Comment">""</v>
+                              <v n="SymbolComment">""</v>
+                              <v n="Address">""</v>
+                              <o n="Flags" t="Flags">
+                                <v n="Flags">0</v>
+                                <v n="Fixed">false</v>
+                                <v n="Extensible">false</v>
+                              </o>
+                              <v n="LValue">false</v>
+                              <v n="Boolean">false</v>
+                              <v n="IsInstance">false</v>
+                              <v n="Id">53L</v>
+                            </o>
+                            <v n="Id">52L</v>
+                          </o>
+                        </l2>
+                        <o n="InputParam" t="ParamList">
+                          <l2 n="Names" cet="String">
+                            <v>hServer</v>
+                            <v>eMode</v>
+                            <v>sRemoteHost</v>
+                            <v>nRemotePort</v>
+                            <v>bEnable</v>
+                            <v>tReconnect</v>
+                          </l2>
+                          <l2 n="Types" cet="String">
+                            <v>T_HSERVER[REF]</v>
+                            <v>E_SocketAcceptMode</v>
+                            <v>T_IPv4Addr</v>
+                            <v>UDINT</v>
+                            <v>BOOL</v>
+                            <v>TIME</v>
+                          </l2>
+                        </o>
+                        <o n="OutputParam" t="ParamList">
+                          <l2 n="Names" cet="String">
+                            <v>bBusy</v>
+                            <v>bError</v>
+                            <v>nErrID</v>
+                            <v>hSocket</v>
+                            <v>eState</v>
+                          </l2>
+                          <l2 n="Types" cet="String">
+                            <v>BOOL</v>
+                            <v>BOOL</v>
+                            <v>UDINT</v>
+                            <v>T_HSOCKET</v>
+                            <v>E_SocketConnectionState</v>
+                          </l2>
+                        </o>
+                        <v n="CallType" t="Operator">FunctionBlock</v>
+                        <v n="EN">false</v>
+                        <v n="ENO">false</v>
+                        <n n="STSnippet" />
+                        <v n="ContainsExtensibleInputs">false</v>
+                        <v n="ProvidesSTSnippet">false</v>
+                        <v n="Id">37L</v>
+                      </o>
+                    </l2>
+                    <l2 n="Connectors" />
+                    <v n="Id">35L</v>
+                  </o>
+                </l2>
+                <v n="BranchCounter">0</v>
+                <v n="ValidIds">true</v>
+              </o>
+            </Data>
+            <TypeList>
+              <Type n="Boolean">System.Boolean</Type>
+              <Type n="BoxTreeBox">{acfc6f68-8e3a-4af5-bf81-3dd512095a46}</Type>
+              <Type n="BoxTreeOperand">{9de7f100-1b87-424c-a62e-45b0cfc85ed2}</Type>
+              <Type n="Flags">{668066f2-6069-46b3-8962-8db8d13d7db2}</Type>
+              <Type n="Int32">System.Int32</Type>
+              <Type n="Int64">System.Int64</Type>
+              <Type n="Network">{d9a99d73-b633-47db-b876-a752acb25871}</Type>
+              <Type n="NWLImplementationObject">{25e509de-33d4-4447-93f8-c9e4ea381c8b}</Type>
+              <Type n="Operand">{c9b2f165-48a2-4a45-8326-3952d8a3d708}</Type>
+              <Type n="Operator">{bffb3c53-f105-4e85-aba2-e30df579d75f}</Type>
+              <Type n="OutputItemList">{f40d3e09-c02c-4522-a88c-dac23558cfc4}</Type>
+              <Type n="ParamList">{71496971-9e0c-4677-a832-b9583b571130}</Type>
+              <Type n="String">System.String</Type>
+            </TypeList>
+          </XmlArchive>
+        </NWL>
+      </Implementation>
+    </Action>
+    <LineIds Name="TCPServer">
+      <LineId Id="32" Count="60" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="114" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="97" Count="3" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

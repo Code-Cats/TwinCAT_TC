@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4020.12">
+  <DUT Name="state" Id="{afb6a7be-b764-412a-930f-c09017c6f3d4}">
+    <Declaration><![CDATA[
+TYPE state :
+(
+	init := 0,
+	gen_power,
+	gen_move,
+	gen_enable,
+	gen_error,
+	gen_reset
+)INT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

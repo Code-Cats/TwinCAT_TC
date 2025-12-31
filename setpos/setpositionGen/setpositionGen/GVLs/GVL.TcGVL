@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <GVL Name="GVL" Id="{24e69440-7c20-4522-8853-f206f44ae01f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	//数据接收
+	Data_receive	   	: ARRAY[1..24]OF BYTE;
+	bReceive		   	: BOOL;//接收执行
+	rec_busy			:BOOL;
+	
+	//数据发送
+	nSendDataBuffer	   	: ARRAY[1..50]OF BYTE;
+	bsend			   	: BOOL;//发送执行
+	
+	number_recdata      :UDINT;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
